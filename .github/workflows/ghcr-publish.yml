@@ -24,6 +24,7 @@ jobs:
           - linux/arm/v6
           - linux/arm/v7
           - linux/arm64
+          - linux/ppc64le
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -80,9 +81,9 @@ jobs:
         run: |
           platform=${{ matrix.platform }}
           echo "172.18.0.3 172-18-0-3.519b6502d940.stremio.rocks" | sudo tee -a /etc/hosts
-          docker run -d --network custom_network --ip 172.18.0.3 -p 8080:8080 -p 12470:12470 -e NO_CORS=1 -e CASTING_DISABLED=1 -e IPADDRESS=172.18.0.3 -v ~/.stremio-server:/root/.stremio-server --platform ${{ matrix.platform }} ${{ env.TMP_LOCAL_IMAGE }}:${platform//\//-}
+          docker run -d --network custom_network --ip 172.18.0.3 -p 8080:8080 -p 12470:12470 -e CASTING_DISABLED=1 -e IPADDRESS=172.18.0.3 -v ~/.stremio-server:/root/.stremio-server --platform ${{ matrix.platform }} ${{ env.TMP_LOCAL_IMAGE }}:${platform//\//-}
           cd tests
-          sleep 10 # wait for server to startup
+          sleep 15 # wait for server to startup
           WEB_URL="https://172-18-0-3.519b6502d940.stremio.rocks:8080" SERVER_URL="https://172-18-0-3.519b6502d940.stremio.rocks:12470" npx playwright test --timeout=60000 || (
             docker ps -a;
             docker logs $(docker ps -a | grep stremio | awk '{print $1}');
@@ -96,7 +97,7 @@ jobs:
         run: |
           platform=${{ matrix.platform }}
           sudo rm -f ~/.stremio-server/httpsCert.json
-          docker run -d --network custom_network --ip 172.18.0.3 -p 8080:8080 -p 12470:12470 -e NO_CORS=1 -e CASTING_DISABLED=1 -e CERT_FILE=172-18-0-3.519b6502d940.stremio.rocks.pem -e DOMAIN=172-18-0-3.519b6502d940.stremio.rocks -v ~/.stremio-server:/root/.stremio-server --platform ${{ matrix.platform }} ${{ env.TMP_LOCAL_IMAGE }}:${platform//\//-}
+          docker run -d --network custom_network --ip 172.18.0.3 -p 8080:8080 -p 12470:12470 -e CASTING_DISABLED=1 -e CERT_FILE=172-18-0-3.519b6502d940.stremio.rocks.pem -e DOMAIN=172-18-0-3.519b6502d940.stremio.rocks -v ~/.stremio-server:/root/.stremio-server --platform ${{ matrix.platform }} ${{ env.TMP_LOCAL_IMAGE }}:${platform//\//-}
           cd tests
           sleep 10 # wait for server to startup
           WEB_URL="https://172-18-0-3.519b6502d940.stremio.rocks:8080" SERVER_URL="https://172-18-0-3.519b6502d940.stremio.rocks:12470" npx playwright test --timeout=60000 || (
@@ -109,9 +110,9 @@ jobs:
           docker rm $(docker ps -a | grep stremio | awk '{print $1}')
 
       - name: Upload image
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: images
+          name: images-${{ strategy.job-index }}
           path: /tmp/images/${{ env.TARFILE }}
           if-no-files-found: error
           retention-days: 1
@@ -127,9 +128,10 @@ jobs:
           - 5000:5000
     steps:
       - name: Download images
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: images
+          pattern: images-*
+          merge-multiple: true
           path: /tmp/images
       - name: Load images
         run: |

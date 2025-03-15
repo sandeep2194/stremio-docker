@@ -116,6 +116,7 @@ These options can be configured by setting environment variables using `-e KEY="
 | Env                | Default | Example                    | Description                                                                                                                                                                                                  |
 |--------------------|---------|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `IPADDRESS`        | -       | `192.168.1.10`             | Set this to enable https                                                                                                                                                                                     |
+| `SERVER_URL`       | -       | `http://192.168.1.10:11470/`| Set this to set server url automatically. **If you change the default url in the UI script will change it back to what you defined here and page will be reloaded**                                                                                                                                                                                      |
 | `NO_CORS`          | -       | `1`                        | Set to disable server's cors                                                                                                                                                                                 |
 | `CASTING_DISABLED` | -       | `1`                        | Set to disable casting. You should set this to `1` if you're getting SSDP errors in the logs                                                                                                                 |
 | `WEBUI_LOCATION`   | -       | `http://192.168.1.10:8080` | Sets the redirect page for web player and automatically sets up streaming server for you when one tries to access server at port 11470 or 12470. Default is https://app.strem.io/shell-v4.4/                 |
@@ -124,6 +125,8 @@ These options can be configured by setting environment variables using `-e KEY="
 | `APP_PATH`         | -       | `/srv/stremio-path/`       | Set for custom path for stremio server. Server will always save cache to /root/.stremio-server though so its only for its config files.                                                                      |
 | `DOMAIN`           | -       | `your.custom.domain`       | Set for custom domain for stremio server. Server will use the specified domain for the web player and streaming server. This should match the certificate and cannot be applied without specifying CERT_FILE |
 | `CERT_FILE`        | -       | `certificate.pem`          | Set for custom certificate path. The server and web player will load the specified certificate.                                                                                                              |
+| `DISABLE_CACHING`  | -       | `1`                        | Disable caching for server if set to 1.      |                                                                                                        
+                                           
 
 There are multiple other options defined but probably best not settings any.
 
@@ -171,22 +174,14 @@ apk add --no-cache libwebp libvorbis x265-libs x264-libs libass opus libgmpxx la
 
 The lines shown above might have changed so just try to use common sense on where to add your package. If you want hardware acceleration you might need to compile it with the driver for your hardware. The version of ffmpeg that we compile comes with (VA-API)[https://en.wikipedia.org/wiki/Video_Acceleration_API]. You will probably need to expose your hardware device inside the container in order to make it work. Server tries to see if it can use any devices on first start. You can see those log messages to see if it worked for you.
 
-### Add support for Intel CPU Transcoding
+### Support for Intel/AMD CPU/GPU Transcoding
 
-If you have an Intel CPU and you are running Linux you can expose the devices :
+If you have an Intel/AMD CPU/GPU and you are running Linux make sure you have the latest/nightly version of the container you can expose the devices to have hardware transcoding capabilities via VAAPI :
 
 ```
 /dev/dri/card0
 /dev/dri/renderD128
 ```
-
-Make sure the drivers are added to the docker image
-
-```
-apk add --no-cache intel-media-driver
-```
-
-**Releases later than 1.1.9 should have the drivers installed and one just needs to expose the devices mentioned.**
 
 docker compose :
 
@@ -202,6 +197,8 @@ cli :
  --device /dev/dri/renderD128:/dev/dri/renderD128 --device /dev/dri/card0:/dev/dri/card0
 ```
 
+**If you have some other device that you would like to add drivers for please reach out.**
+
 ## Builds
 
 Builds are setup to make images for the below archs :
@@ -210,6 +207,7 @@ Builds are setup to make images for the below archs :
 - linux/amd64
 - linux/arm64/v8
 - linux/arm/v7
+- linux/ppc64le
 
 I can add more build archs if you require them and you can ask but I doubt anybody ever will need to install these containers in anything else.
 
@@ -234,7 +232,8 @@ docker build -t stremio:myserver .
 - [Using HTTP](https://github.com/tsaridas/stremio-docker/wiki/Using-Stremio-Server-HTTP)
 - [Using HTTPS Local IP](https://github.com/tsaridas/stremio-docker/wiki/Using-Stremio-Server-with-Private-IP)
 - [Using HTTPS Public IP](https://github.com/tsaridas/stremio-docker/wiki/Using-Stremio-Server-with-Public-IP)
-
+- [Using HTTPS with custom certificate](https://github.com/tsaridas/stremio-docker/wiki/Using-Stremio-Server-with-Custom-Certificate)
+  
 ## Useful links
 
 [Stremio addons](https://stremio-addons.netlify.app/)
@@ -254,5 +253,4 @@ then you set your dns server to the ip address of your dns caching server and yo
 ## Last words
 
 I don't intend to spend much time on this and tried to automate as much as I had time to.
-PRs and Issues are welcome.
-You can also fork and do as you like with the code but if you find some issue please do let me know.
+PRs and Issues are welcome. If you find some issue please do let me know.
